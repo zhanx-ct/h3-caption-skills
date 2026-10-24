@@ -91,6 +91,12 @@ Do not add a timestamp to the first shot. Use sequential shot numbers for later 
 
 For ordinary cuts, use `the camera cuts to`, `the shot cuts to`, `the shot transitions to`, `the shot changes to`, or `the shot switches to`. When explicitly requested by the user, cross-dissolve, fade, or wipe may also be used. A cut should introduce new information about the subject, space, state, viewpoint, or time. If only the distance or a slight angle needs to change, prefer camera motion.
 
+When a person from an earlier shot appears again, call them `the same` person and repeat their key appearance, such as hair and clothing, in the same words each time, so their identity carries across the cut:
+
+```text
+[Shot 3] At 00:06.500, the shot cuts back to the same young woman in the grey knit beanie and brown suede jacket.
+```
+
 ### 4.3 Camera Motion: Motion Type + Amplitude + Speed
 
 A complete camera-motion expression has three dimensions: the **motion type** defines how the camera moves, **amplitude** defines the range of compositional change, and **speed** defines the pacing of that change. Add amplitude and speed only when they are meaningful; medium amplitude and normal speed are usually omitted.
