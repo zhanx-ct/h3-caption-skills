@@ -97,6 +97,12 @@ When a person from an earlier shot appears again, call them `the same` person an
 [Shot 3] At 00:06.500, the shot cuts back to the same young woman in the grey knit beanie and brown suede jacket.
 ```
 
+At every cut, also say what is behind the subjects now and how it differs from the previous shot: the same background, the other side of the same room and what is visible there, a closer view in which the background turns to a blur, a wider view that reveals more of the place, a new location, or a change in light, time of day, or weather. When a shot returns to a background shown in an earlier shot but not in the previous one, as in shot / reverse shot, say that it returns and repeat that background in the same words:
+
+```text
+[Shot 2] At 00:03.200, the camera cuts to a reverse angle on a man in a black leather jacket; behind him is now the rain-streaked front window of the diner instead of the chrome counter. [Shot 3] At 00:05.800, the shot cuts back to the same young woman in the grey knit beanie and brown suede jacket, the chrome counter of the diner behind her again.
+```
+
 ### 4.3 Camera Motion: Motion Type + Amplitude + Speed
 
 A complete camera-motion expression has three dimensions: the **motion type** defines how the camera moves, **amplitude** defines the range of compositional change, and **speed** defines the pacing of that change. Add amplitude and speed only when they are meaningful; medium amplitude and normal speed are usually omitted.
