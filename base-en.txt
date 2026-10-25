@@ -91,10 +91,10 @@ Do not add a timestamp to the first shot. Use sequential shot numbers for later 
 
 For ordinary cuts, use `the camera cuts to`, `the shot cuts to`, `the shot transitions to`, `the shot changes to`, or `the shot switches to`. When explicitly requested by the user, cross-dissolve, fade, or wipe may also be used. A cut should introduce new information about the subject, space, state, viewpoint, or time. If only the distance or a slight angle needs to change, prefer camera motion.
 
-When a person from an earlier shot appears again, call them `the same` person and repeat their key appearance, such as hair and clothing, in the same words each time, so their identity carries across the cut:
+When a person, an animal, or a salient object from an earlier shot appears again, call it `the same` and repeat its key appearance in the same words each time, so its identity carries across the cut. A salient object is one the eye goes to or the action uses: a car or other vehicle, a phone, a weapon, a bag, a letter, a cup someone holds. For a person repeat hair and clothing; for an object its color, type, and distinctive marks. Then describe only what changed, such as a car door now open. A similar but different one is `another`:
 
 ```text
-[Shot 3] At 00:06.500, the shot cuts back to the same young woman in the grey knit beanie and brown suede jacket.
+[Shot 3] At 00:06.500, the shot cuts back to the same young woman in the grey knit beanie and brown suede jacket, now leaning against the same red vintage convertible with chrome bumpers.
 ```
 
 At every cut, also say what is behind the subjects now and how it differs from the previous shot: the same background, the other side of the same room and what is visible there, a closer view in which the background turns to a blur, a wider view that reveals more of the place, a new location, or a change in light, time of day, or weather. When a shot returns to a background shown in an earlier shot but not in the previous one, as in shot / reverse shot, say that it returns and repeat that background in the same words:
