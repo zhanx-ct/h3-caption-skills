@@ -6,6 +6,7 @@
 - **I2VA**: T2VA body + first-frame instruction + a visual path that develops forward from the first frame.
 - **FL2VA**: T2VA body + first-and-last-frame instruction + a continuous path from the first frame to the last frame.
 - **L2VA**: T2VA body + last-frame instruction + a path that converges from a plausible preceding state to the last frame.
+- **Captioning a given multi-shot video**: a T2VA caption that describes an existing video of two or more shots joined by hard cuts precisely enough to regenerate it, with the same people, objects, and places from shot to shot. Follow Section 6.
 
 ## 2. Final Prompt Structure
 
@@ -231,4 +232,116 @@ integrated_multimodal_description: [Shot 1] Live-action, cinematic, a close shot
 overall_soundscape: Fingertips tap the glass before it scrapes across the tabletop, falls, and breaks with a sharp crash. Small fragments scatter and gradually stop sliding across the floor.
 
 non_diegetic_music: A low electronic pulse at a slow tempo, ending immediately after the glass breaks.
+```
+
+## 6. Captioning a Given Multi-Shot Video
+
+Use this section when you are given a video of two or more shots joined by hard cuts, usually a film or TV sequence, and asked for its caption. The caption is a T2VA prompt that describes what the video shows precisely enough to regenerate it, with the same people, objects, and places from shot to shot. It is written from the footage, not from a user's text. Where this section differs from Sections 2–4, this section applies; the styles, camera motion (4.3), and on-screen text (4.5) apply as written above. A video without a hard cut is a single shot: this section does not apply to it. Your answer is the finished caption and nothing else: no notes, lists, ids, or code fences, and nothing is added to or removed from it afterwards.
+
+Work in two stages, and finish the first before you write a word of the caption:
+
+1. **Stage 1, plan**: find the cuts and the start time of every shot (6.2), look at every shot, and decide who and what recurs across the shots and which background each shot shows (6.3).
+2. **Stage 2, write**: write the caption from that plan (6.4–6.6), then check it (6.7) and correct what the check finds.
+
+The plan is what keeps a recurring person or object named in identical words in every shot; deciding it while writing shot by shot is where names drift and links get missed.
+
+### 6.1 Output
+
+```text
+integrated_multimodal_description: [Shot 1] <style>, <framing> ... [Shot 2] At MM:SS.mmm, the camera cuts to ... [Shot 3] At MM:SS.mmm, the camera cuts back to ...
+
+overall_soundscape: N/A
+
+non_diegetic_music: N/A
+```
+
+- One `[Shot k]` per shot, numbered from 1 in order, all in one paragraph: the shots are separated by a single space, with no line breaks inside the description.
+- `[Shot 1]` has no time. Every later shot starts with `At MM:SS.mmm, `, the start time of the shot (6.2), followed by a cut phrase in lower case.
+- The caption describes the picture only. Both sound fields are exactly `N/A`. Write no dialogue (`<d>`), no speaker IDs, and no sound, music, or voice words in the description; a person whose lips move may be described as speaking. No first-frame or last-frame instruction line.
+
+### 6.2 Stage 1: Find the Shots and Their Start Times
+
+A shot runs from one hard cut to the next; camera moves and fast action inside a shot are not cuts. Shot k starts at its first frame: the time is the index of that frame (counting from 0) divided by the frame rate, written as minutes and seconds with three decimals, rounded to the millisecond. For example, frame 31 at 24000/1001 fps is 1.293 seconds, `00:01.293`. When the cuts are given, use them as they are and do not detect them again: as the first frame index of every shot after the first (shot k+1 starts at the k-th index / fps), or as shot lengths in frames (shot k starts at the frames of shots 1 to k-1 / fps). The times are strictly increasing and below the video's duration.
+
+With a shell, ffmpeg gives the frame rate and frame count, and ranks the frames by how much they differ from the frame before:
+
+```bash
+ffprobe -v error -select_streams v:0 -count_frames -show_entries stream=r_frame_rate,nb_read_frames -of default=nw=1 in.mp4
+ffmpeg -hide_banner -i in.mp4 -vf "select='gte(scene,0)',metadata=print:file=-" -an -f null - 2>/dev/null \
+  | awk '/^frame:/{f=$1; t=$3} /scene_score/{split($0,a,"="); print a[2], f, t}' | sort -g -r | head -20
+```
+
+The second command prints score, `frame:<index>`, and `pts_time:<seconds>`. Cuts stand far above the other frames, but their scores vary with the footage: in dark footage they can be 0.11–0.14 against below 0.02 for every other frame, so a fixed threshold such as 0.3 misses them. A flash, a whip pan, or fast motion can also score high. Look at the frames on both sides of every candidate before calling it a cut.
+
+To watch the video, extract frames, for example 4 per second at 448 pixels high (file N shows the time (N-1)/4 seconds), and contact sheets of 30 frames at 2 per second for comparing shots side by side:
+
+```bash
+mkdir -p frames && ffmpeg -hide_banner -loglevel error -i in.mp4 -vf "fps=4,scale=-2:448" frames/%04d.jpg
+ffmpeg -hide_banner -loglevel error -i in.mp4 -vf "fps=2,scale=-2:180,tile=6x5" sheet_%02d.jpg
+```
+
+Look at least at the first, middle, and last frames of every shot, and at the frames on both sides of every cut.
+
+### 6.3 Stage 1: Decide Who and What Recurs, and the Backgrounds
+
+Decide these before you write. None of it appears in the answer as a list; it decides the wording of the texts. Compare the shots side by side (a contact sheet helps) rather than one after another.
+
+- **Entities**: every person, animal, and salient object seen in more than one shot, and the shots that show each. A salient object is one the eye goes to or the action uses: a vehicle, a phone, a weapon, a bag or suitcase, a letter or photo, a cup or bottle someone holds, furniture someone sits at or leans on, a sign or screen. A recurring salient object counts as much as a person. Someone or something seen in one shot only is not an entity: describe it as usual in that shot.
+- **The very same one**: link two shots only on visible evidence: the same face, hair, build, and clothing, or the same color, shape, make, and markings. An edit pattern (a reverse angle, a point-of-view shot, an insert) or a similar color is not enough. When you cannot tell, treat them as two; never merge two different people or objects. A similar but different one (a second black phone, another man in a suit) is its own entity.
+- **Anchors**: give each entity an anchor, its appearance as it is in every shot that shows it: 5–14 words, lower case (except on-screen text or a brand name), without an article. A person: apparent age and gender, hair, the most visible clothing (`young woman with a blonde bun in a grey knit beanie and brown suede jacket`). An animal: species, color, markings (`black-and-white border collie with a red collar`). An object: color, type or make, material, a distinctive mark (`red vintage convertible with chrome bumpers`). An anchor never holds an action, pose, position, or place (`handing envelopes`, `seated at the far right`, `held in one hand`, `on the table`): those change from shot to shot. Two entities never get the same or a near-identical anchor; name what tells them apart (`bearded man in the grey overcoat`, `bald man in the black sweater`).
+- **Backgrounds**: every distinct background seen behind the subjects, each with an anchor: the place and the part of it in view (`bookshelf wall of a wood-paneled study`, `rain-streaked window side of the study`). Shots in front of the same background (the same wall, window, or stretch of street) share it even when the framing differs; the other side of a room, or a view of a different part of the place, is another background. Note which background each shot shows.
+
+### 6.4 Stage 2: Name Every Entity the Same Way in Every Shot
+
+- In the first shot that shows an entity, write `a` or `an` + its anchor, where its noun phrase goes: `A young woman with a blonde bun in a grey knit beanie steps in from the left`.
+- In every later shot that shows it, write `the same` + its anchor, word for word, at its first mention in that shot, also when it is seen from behind, from another side, or only in part, and also after shots without it. Later mentions in the same shot are a pronoun or a short noun (`she`, `the car`).
+- The anchor phrase is a complete noun phrase. Keep the anchor's words out of what surrounds it: no adjective of the anchor in front of it (`a brown a brown leather backpack`), no restatement after it (`the same woman with long dark hair, a woman with long dark hair,`), and no repeat of its last words (`a round wooden table heaped with books heaped with books`). What follows the anchor phrase is only what is new in this shot: action, position, framing, or state (`the same young woman with a blonde bun in a grey knit beanie, now seen from the front, grips the wheel`; `the same red vintage convertible with chrome bumpers, its driver's door now open`).
+- Do not put a possessive on the anchor phrase: `the hand of the same young woman with ...`, not `the same young woman with ...'s hand`.
+- `The same` is only for something already described in an earlier shot: never in Shot 1 and never at an entity's first appearance. Never a bare `the same man`, `the same woman`, or `the same car`. Someone or something that first appears in a later shot is `a` or `another` + its description.
+- State a link through the wording only; do not explain how you know it (`confirming`, `revealing it is`, `identifiable as`).
+
+With the anchors `young woman with a blonde bun in a grey knit beanie` and `red vintage convertible with chrome bumpers`:
+
+```text
+[Shot 1] ... A young woman with a blonde bun in a grey knit beanie walks along the curb toward a red vintage convertible with chrome bumpers and opens its door. [Shot 2] At 00:04.171, the camera cuts to a close-up of the same young woman with a blonde bun in a grey knit beanie, now seen through the windshield, as she grips the wheel.
+```
+
+### 6.5 Stage 2: Say What Is Behind the Subjects at Every Cut
+
+- Shot 1 describes its background: the place, what is behind the subjects, the light.
+- Every later shot says, right after its framing, what is behind its subjects now compared with the previous shot:
+  - the same background as the previous shot: `against the same bookshelf wall of the study`;
+  - a different one: what is now visible and what is no longer there (`the reverse angle shows the rain-streaked window behind him instead of the bookshelves`), a closer view in which the background turns to a blur, or a wider view that reveals more of the place;
+  - a background seen in an earlier shot but not in the previous one, as in shot / reverse shot: it returns. Say so with `back` or `again` and `the same` + its anchor: `the camera cuts back to the man, the same bookshelf wall of a wood-paneled study behind him again`.
+- Also state visible changes of light, time of day, weather, or set between shots (a lamp now on, a door now open, rain starting). Keep the style and color grade consistent and mention them again only when they change.
+
+### 6.6 Stage 2: Write Each Shot
+
+- 30–110 words of fluent English per shot, depending on how much happens: the framing and composition, the subjects and where they are, the background, the action from the start to the end of the shot, and the camera motion.
+- Shot 1 starts with the style and then the framing: `Live-action, cinematic, a static medium shot frames ...`. Styles: `Live-action, cinematic`; `Live-action, documentary`; `Live-action, handheld realism`; `vintage film`; `black-and-white film`; `2D-animated`; `3D CG`; `stop-motion`. Use `Live-action, cinematic` for fiction film and TV drama or comedy, and `Live-action, documentary` for reality TV, interviews, talks, nature, sports, and event footage.
+- Every later shot starts, after its time, with a cut phrase in lower case: `the camera cuts to`, `the camera cuts back to`, `the shot changes to`, `the shot switches to`. Use `cuts back to` only for a camera setup, subject, or background shown in an earlier shot.
+- Camera motion as in 4.3, judged from the background, not from the subjects; when the frame does not move, `the camera holds a static shot`.
+- Quote clearly legible on-screen text verbatim in double quotes (4.5).
+- Only what is visible: no names, no story or intentions, no emotions stated as facts (describe the visible expression). No shot numbers, timestamps (except quoted on-screen clocks), or remarks about the video or the captioning inside the texts.
+- Describe what changes, not what is already known: an entity's appearance is in its anchor, so a later shot adds only its pose, position, action, framing, and what is new.
+- Notes that come with the video (earlier captions, per-shot descriptions, cut labels) help you notice details but can be wrong, and their wording may not follow these rules: write only what the video shows, in the form of this section.
+
+### 6.7 Stage 2: Check Before Answering
+
+1. One `[Shot k]` per shot, in order; Shot 1 without a time; every later shot `At MM:SS.mmm, ` with its start time, then a lower-case cut phrase; one paragraph; then the two `N/A` fields.
+2. Every entity is named in every shot that shows it: `a` or `an` + its anchor in its first shot, and `the same` + the identical anchor in every later one. Compare the words of each anchor across shots.
+3. No anchor words doubled around a named entity, no `the same the same`, no bare `the same man` / `woman` / `car`, and no `the same` in Shot 1.
+4. Every later shot says what is behind its subjects; every return says `back` or `again` with `the same` + the background's anchor.
+5. No sound, music, voice, or dialogue words; no names; no braces, ids, or notes; each shot 30–110 words.
+
+### 6.8 Example
+
+A three-shot sequence at 24000/1001 fps whose shots are 63, 196, and 93 frames long (cuts at frames 63 and 259). Entities: the young woman (shots 1–3) and the lantern (shots 1 and 3); the two women in shot 2 appear in that shot only. Backgrounds: the balcony (shots 1 and 3, a return) and the courtyard below (shot 2).
+
+```text
+integrated_multimodal_description: [Shot 1] Live-action, cinematic, a static medium shot frames an exterior balcony with blurred sunlit green trees filling the background. A rusty metal hanging lantern with glass panels hangs in the foreground center. A young woman with long dark curly hair in a navy velvet jacket and plaid skirt steps in from the left and leans forward onto a dark wooden railing, gazing down and outward with her mouth slightly open. The camera holds a static shot. [Shot 2] At 00:02.628, the camera cuts to a high-angle point-of-view shot down from the balcony onto a leaf-strewn dirt courtyard below an iron gate, the sunlit trees no longer visible, the back of the same young woman with long dark curly hair in a navy velvet jacket and plaid skirt blurred across the left foreground. There, an older woman with grey hair in a blue striped shawl walks arm-in-arm with a younger woman with a long dark braid in a pink dress. The two pause and look upward; the older woman gestures, then draws the younger one close. The camera holds a static shot. [Shot 3] At 00:10.802, the camera cuts back to the same exterior balcony, the same rusty metal hanging lantern with glass panels and blurred sunlit green trees behind the same young woman with long dark curly hair in a navy velvet jacket and plaid skirt again. A static medium shot frames her in profile, leaning on the dark ledge and gazing down. She then straightens up and turns her head sharply to look over her left shoulder, resting one hand on the railing and the other at her hip. The camera holds a static shot.
+
+overall_soundscape: N/A
+
+non_diegetic_music: N/A
 ```
