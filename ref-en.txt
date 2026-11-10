@@ -125,6 +125,7 @@ This section uses one short English paragraph to summarize the target video and 
 ```text
 [reference generation] ...
 [video editing + reference generation + audio reuse] ...
+[video inpainting + reference generation] ...
 ```
 
 Choose task types according to the actual role each reference asset plays in the target video:
@@ -135,6 +136,7 @@ Choose task types according to the actual role each reference asset plays in the
 | `reference generation` | An image, video, or audio asset provides generation guidance for a character, scene, style, action, camera movement, storyboard, and so on, without serving as a concrete frame or as the source video being edited or continued |
 | `video editing` | An existing source video is directly modified; editing an image or generating between still keyframes does not belong to this type |
 | `video continuation` | New content continues, extends, resumes, or transitions from an existing source video |
+| `video inpainting` | `<Video 1>` is a masked video, the source video with a masked region shown in black, given together with its binary mask; the target video keeps the content outside the mask unchanged and fills the masked region with new content |
 | `audio reuse` | The same audio signal is reused in full or in part |
 | `audio reference` | The audio signal is not copied directly; only its music style, timbre, dialogue or lyric content, sound-effect texture, beat, or continuity is referenced |
 
@@ -151,6 +153,14 @@ For video-editing tasks, begin the summary after the task-type prefix with:
 ```text
 The target video is an edited version of <Video 1>.
 ```
+
+For video-inpainting tasks, `<Video 1>` is the masked video, and reference videos are numbered from `<Video 2>`. Begin the summary after the task-type prefix with:
+
+```text
+The target video is an inpainted version of <Video 1>. The masked region of <Video 1>, shown in black, is filled with new content that follows this description and the references, and the content outside the mask stays unchanged.
+```
+
+Use `[video inpainting + reference generation]` when references define subjects of the new content. Without references, the prefix is `[video inpainting]` and the second sentence reads "The masked region of <Video 1>, shown in black, is filled with new content that follows this description, and the content outside the mask stays unchanged." Do not define `<Video 1>` in `subject_definitions` or `retention_analysis`. The other sections describe the complete target video, the unchanged content and the new content alike, and do not mark which region was masked.
 
 ## 4. `retention_analysis`
 
